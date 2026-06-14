@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StreamVault — Live TV</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap');
+
+  :root {
+    --bg-deep:    #080c14;
+    --bg-card:    #0e1422;
+    --bg-hover:   #141a2e;
+    --border:     #1e2a45;
+    --accent:     #3d6cff;
+    --accent-glow:#3d6cff44;
+    --live:       #ff3b5c;
+    --text-1:     #eaf0ff;
+    --text-2:     #8496c0;
+    --text-3:     #4a5980;
+    --radius:     12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg-deep); color: var(--text-1); font-family: 'Inter', sans-serif; }
+
+  /* ── NAVBAR ─────────────────────────────────── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px; height: 60px;
+    background: rgba(8,12,20,.92);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+  }
+  .nav-logo { font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--text-1); text-decoration: none; }
+  .nav-logo span { color: var(--accent); }
+  .nav-links { display: flex; gap: 6px; }
+  .nav-links a {
+    color: var(--text-2); text-decoration: none; font-size: .85rem; font-weight: 500;
+    padding: 6px 14px; border-radius: 8px; transition: all .2s;
+  }
+  .nav-links a:hover, .nav-links a.active { background: var(--bg-hover); color: var(--text-1); }
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+  .btn-admin {
+    background: var(--accent); color: #fff; border: none; cursor: pointer;
+    padding: 7px 16px; border-radius: 8px; font-size: .82rem; font-weight: 600;
+    text-decoration: none; transition: opacity .2s;
+  }
+  .btn-admin:hover { opacity: .85; }
+
+  /* ── LAYOUT ─────────────────────────────────── */
+  .app { display: grid; grid-template-columns: 260px 1fr; height: 100vh; padding-top: 60px; }
+
+  /* ── SIDEBAR ─────────────────────────────────── */
+  aside {
+    background: var(--bg-card); border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 18px 10px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .sidebar-section { padding: 8px 10px 4px; font-size: .7rem; font-weight: 600; color: var(--text-3); letter-spacing: .08em; text-transform: uppercase; }
+  .cat-btn {
+    display: flex; align-items: center; gap: 10px;
+    background: none; border: none; color: var(--text-2); width: 100%;
+    padding: 9px 12px; border-radius: 8px; cursor: pointer; font-size: .88rem;
+    text-align: left; transition: all .18s;
+  }
+  .cat-btn:hover { background: var(--bg-hover); color: var(--text-1); }
+  .cat-btn.active { background: var(--accent-glow); color: var(--accent); }
+  .cat-btn .icon { font-size: 1.1rem; width: 22px; text-align: center; }
+  .cat-count { margin-left: auto; font-size: .72rem; background: var(--border); color: var(--text-2); padding: 2px 7px; border-radius: 20px; }
+
+  /* ── MAIN CONTENT ────────────────────────────── */
+  main { overflow-y: auto; padding: 22px 24px; display: flex; flex-direction: column; gap: 22px; }
+
+  /* search bar */
+  .search-bar {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 0 16px; height: 44px;
+  }
+  .search-bar input {
+    background: none; border: none; outline: none; color: var(--text-1);
+    font-size: .9rem; flex: 1;
+  }
+  .search-bar input::placeholder { color: var(--text-3); }
+  .search-icon { color: var(--text-3); font-size: 1rem; }
+
+  /* featured hero */
+  .hero {
+    position: relative; border-radius: var(--radius); overflow: hidden;
+    background: linear-gradient(135deg, #0d1a3a 0%, #0e0a20 100%);
+    border: 1px solid var(--border); min-height: 220px;
+    display: flex; align-items: flex-end; padding: 24px;
+  }
+  .hero-bg {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 70% 40%, #1a2f6644 0%, transparent 65%),
+                radial-gradient(ellipse at 20% 80%, #3d1a5544 0%, transparent 60%);
+  }
+  .live-badge {
+    position: absolute; top: 18px; left: 18px;
+    background: var(--live); color: #fff; font-size: .72rem; font-weight: 700;
+    padding: 3px 10px; border-radius: 20px; letter-spacing: .06em;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.7} }
+  .hero-info { position: relative; z-index: 1; }
+  .hero-channel { font-size: .8rem; color: var(--accent); font-weight: 600; margin-bottom: 6px; }
+  .hero-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; }
+  .hero-meta { font-size: .82rem; color: var(--text-2); }
+  .btn-watch {
+    margin-top: 14px; display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent); color: #fff; border: none; cursor: pointer;
+    padding: 10px 22px; border-radius: 9px; font-size: .9rem; font-weight: 600;
+    transition: opacity .2s; text-decoration: none;
+  }
+  .btn-watch:hover { opacity: .85; }
+
+  /* section heading */
+  .section-heading { font-size: .75rem; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; }
+
+  /* channel grid */
+  .channel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+  .channel-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; cursor: pointer; transition: all .2s; position: relative;
+  }
+  .channel-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 24px #0008; }
+  .channel-card.playing { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+  .channel-thumb {
+    width: 100%; aspect-ratio: 16/9; object-fit: cover;
+    background: var(--bg-hover); display: flex; align-items: center; justify-content: center;
+    font-size: 2.2rem;
+  }
+  .channel-body { padding: 10px 12px 12px; }
+  .channel-name { font-size: .88rem; font-weight: 600; color: var(--text-1); }
+  .channel-now { font-size: .75rem; color: var(--text-2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .live-dot {
+    position: absolute; top: 8px; right: 8px;
+    width: 8px; height: 8px; border-radius: 50%; background: var(--live);
+    box-shadow: 0 0 0 3px rgba(255,59,92,.25);
+  }
+
+  /* player overlay */
+  .player-overlay {
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,.88); align-items: center; justify-content: center;
+    flex-direction: column;
+  }
+  .player-overlay.open { display: flex; }
+  .player-wrap { width: min(860px, 95vw); }
+  .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .player-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 700; }
+  .btn-close { background: var(--border); border: none; color: var(--text-1); cursor: pointer; padding: 6px 12px; border-radius: 7px; font-size: .85rem; }
+  .player-box {
+    width: 100%; aspect-ratio: 16/9; background: #000;
+    border-radius: var(--radius); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3rem; color: var(--text-3); overflow: hidden; position: relative;
+  }
+  .player-box video { width: 100%; height: 100%; }
+  .player-box iframe { width: 100%; height: 100%; border: none; }
+  .player-msg { font-size: .85rem; color: var(--text-2); margin-top: 10px; text-align: center; }
+
+  /* toast */
+  .toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--bg-card); border: 1px solid var(--accent); color: var(--text-1);
+    padding: 11px 22px; border-radius: 9px; font-size: .88rem; font-weight: 500;
+    transition: transform .3s; z-index: 300; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+  @media (max-width: 700px) {
+    .app { grid-template-columns: 1fr; }
+    aside { display: none; }
+    .hero-title { font-size: 1.2rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav>
+  <a class="nav-logo" href="index.html">Stream<span>Vault</span></a>
+  <div class="nav-links">
+    <a href="#" class="active">Live TV</a>
+    <a href="#">Movies</a>
+    <a href="#">Series</a>
+    <a href="#">Sports</a>
+  </div>
+  <div class="nav-right">
+    <a class="btn-admin" href="admin.html">⚙ Admin Panel</a>
+  </div>
+</nav>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="sidebar-section">Categories</div>
+    <button class="cat-btn active" onclick="filterCategory('all')">
+      <span class="icon">📺</span> All Channels <span class="cat-count" id="cnt-all">0</span>
+    </button>
+    <button class="cat-btn" onclick="filterCategory('news')">
+      <span class="icon">📰</span> News <span class="cat-count" id="cnt-news">0</span>
+    </button>
+    <button class="cat-btn" onclick="filterCategory('sports')">
+      <span class="icon">⚽</span> Sports <span class="cat-count" id="cnt-sports">0</span>
+    </button>
+    <button class="cat-btn" onclick="filterCategory('entertainment')">
+      <span class="icon">🎬</span> Entertainment <span class="cat-count" id="cnt-entertainment">0</span>
+    </button>
+    <button class="cat-btn" onclick="filterCategory('kids')">
+      <span class="icon">🧸</span> Kids <span class="cat-count" id="cnt-kids">0</span>
+    </button>
+    <button class="cat-btn" onclick="filterCategory('music')">
+      <span class="icon">🎵</span> Music <span class="cat-count" id="cnt-music">0</span>
+    </button>
+    <button class="cat-btn" onclick="filterCategory('documentary')">
+      <span class="icon">🌍</span> Documentary <span class="cat-count" id="cnt-documentary">0</span>
+    </button>
+    <div class="sidebar-section" style="margin-top:14px;">Info</div>
+    <button class="cat-btn" onclick="showToast('Total channels loaded from local storage')">
+      <span class="icon">📡</span> Channel Count
+    </button>
+  </aside>
+
+  <!-- MAIN -->
+  <main>
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search channels…" oninput="renderChannels()">
+    </div>
+
+    <div class="hero">
+      <div class="hero-bg"></div>
+      <div class="live-badge">● LIVE</div>
+      <div class="hero-info">
+        <div class="hero-channel" id="hero-channel">Featured Channel</div>
+        <div class="hero-title" id="hero-title">Welcome to StreamVault</div>
+        <div class="hero-meta" id="hero-meta">Select a channel to start watching</div>
+        <button class="btn-watch" id="hero-btn" onclick="openFirstChannel()">▶ Watch Now</button>
+      </div>
+    </div>
+
+    <div class="section-heading">Live Channels</div>
+    <div class="channel-grid" id="channelGrid"></div>
+  </main>
+</div>
+
+<!-- PLAYER OVERLAY -->
+<div class="player-overlay" id="playerOverlay">
+  <div class="player-wrap">
+    <div class="player-header">
+      <div class="player-title" id="playerTitle">Channel Name</div>
+      <button class="btn-close" onclick="closePlayer()">✕ Close</button>
+    </div>
+    <div class="player-box" id="playerBox">
+      <span>📡</span>
+    </div>
+    <div class="player-msg">If stream does not load, check the URL in Admin Panel.</div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Default demo channels ──────────────────────
+const DEFAULT_CHANNELS = [
+  { id:1, name:'BBC News', category:'news', icon:'🇬🇧', streamUrl:'https://vs-hls-push-ww-live.akamaized.net/x=4/i=urn:bbc:pmd:pid:bbc_news_channel_hd/pc_hd_abr_v2.m3u8', nowPlaying:'World News Live', logo:'' },
+  { id:2, name:'Al Jazeera', category:'news', icon:'📡', streamUrl:'https://live-hls-web-aje.getaj.net/AJE/index.m3u8', nowPlaying:'Middle East Update', logo:'' },
+  { id:3, name:'Sports Arena', category:'sports', icon:'⚽', streamUrl:'', nowPlaying:'Live Match Coverage', logo:'' },
+  { id:4, name:'Kids Zone', category:'kids', icon:'🧸', streamUrl:'', nowPlaying:'Cartoon Hour', logo:'' },
+  { id:5, name:'MTV Hits', category:'music', icon:'🎵', streamUrl:'', nowPlaying:'Top 40 Countdown', logo:'' },
+  { id:6, name:'Discovery HD', category:'documentary', icon:'🌍', streamUrl:'', nowPlaying:'Ocean Wonders', logo:'' },
+  { id:7, name:'Cinema Plus', category:'entertainment', icon:'🎬', streamUrl:'', nowPlaying:'Movie Night', logo:'' },
+  { id:8, name:'ESPN Live', category:'sports', icon:'🏆', streamUrl:'', nowPlaying:'Highlights', logo:'' },
+];
+
+function getChannels() {
+  const stored = localStorage.getItem('sv_channels');
+  return stored ? JSON.parse(stored) : DEFAULT_CHANNELS;
+}
+
+let currentCategory = 'all';
+let currentChannelId = null;
+
+function filterCategory(cat) {
+  currentCategory = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  renderChannels();
+}
+
+function renderChannels() {
+  const channels = getChannels();
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = channels.filter(c => {
+    const matchCat = currentCategory === 'all' || c.category === currentCategory;
+    const matchQ = !q || c.name.toLowerCase().includes(q) || (c.nowPlaying||'').toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+
+  // update counts
+  ['all','news','sports','entertainment','kids','music','documentary'].forEach(cat => {
+    const el = document.getElementById('cnt-'+cat);
+    if (el) el.textContent = cat === 'all' ? channels.length : channels.filter(c=>c.category===cat).length;
+  });
+
+  // update hero
+  if (channels.length > 0) {
+    const hero = channels[0];
+    document.getElementById('hero-channel').textContent = hero.category?.toUpperCase() || 'LIVE';
+    document.getElementById('hero-title').textContent = hero.name;
+    document.getElementById('hero-meta').textContent = '▶ Now Playing: ' + (hero.nowPlaying || 'Live Stream');
+  }
+
+  const grid = document.getElementById('channelGrid');
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div style="color:var(--text-3);font-size:.9rem;grid-column:1/-1;padding:20px 0">No channels found.</div>';
+    return;
+  }
+  grid.innerHTML = filtered.map(c => `
+    <div class="channel-card ${c.id === currentChannelId ? 'playing' : ''}" onclick="openPlayer(${c.id})">
+      <div class="live-dot"></div>
+      <div class="channel-thumb">${c.icon || '📺'}</div>
+      <div class="channel-body">
+        <div class="channel-name">${escHtml(c.name)}</div>
+        <div class="channel-now">${escHtml(c.nowPlaying || 'Live')}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openFirstChannel() {
+  const channels = getChannels();
+  if (channels.length) openPlayer(channels[0].id);
+}
+
+function openPlayer(id) {
+  const channels = getChannels();
+  const ch = channels.find(c => c.id === id);
+  if (!ch) return;
+  currentChannelId = id;
+  renderChannels();
+
+  document.getElementById('playerTitle').textContent = ch.icon + ' ' + ch.name;
+  const box = document.getElementById('playerBox');
+
+  if (ch.streamUrl && (ch.streamUrl.endsWith('.m3u8') || ch.streamUrl.includes('m3u8'))) {
+    // HLS stream
+    box.innerHTML = `<video id="liveVideo" controls autoplay style="width:100%;height:100%"></video>`;
+    const video = document.getElementById('liveVideo');
+    if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(ch.streamUrl);
+      hls.attachMedia(video);
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = ch.streamUrl;
+    } else {
+      box.innerHTML = `<div style="color:var(--text-2);text-align:center;padding:20px">⚠️ HLS not supported in this browser.<br>Try Chrome with HLS extension.</div>`;
+    }
+  } else if (ch.streamUrl && ch.streamUrl.startsWith('http')) {
+    box.innerHTML = `<iframe src="${ch.streamUrl}" allowfullscreen allow="autoplay"></iframe>`;
+  } else {
+    box.innerHTML = `<div style="color:var(--text-2);text-align:center;padding:20px">📡 No stream URL set.<br>Add one in the <strong>Admin Panel</strong>.</div>`;
+  }
+
+  document.getElementById('playerOverlay').classList.add('open');
+}
+
+function closePlayer() {
+  document.getElementById('playerOverlay').classList.remove('open');
+  document.getElementById('playerBox').innerHTML = '<span>📡</span>';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// close overlay on bg click
+document.getElementById('playerOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('playerOverlay')) closePlayer();
+});
+
+// init
+renderChannels();
+</script>
+<!-- HLS.js for M3U8 streams -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.12/hls.min.js"></script>
+</body>
+</html>
